@@ -52,6 +52,7 @@ export default [
       typescript({
         tsconfig: './tsconfig.json',
         declaration: false,
+        declarationDir: null,
         sourceMap: true,
       }),
       terser(),
