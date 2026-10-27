@@ -48,6 +48,7 @@
     "url": "https://github.com/nbhson/srich-editor/issues"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.61.1",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.3.0",
@@ -58,6 +59,7 @@
     "rollup-plugin-postcss": "^4.0.2",
     "tslib": "^2.8.1",
     "typescript": "^5.3.3",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^4.1.10"
   },
   "sideEffects": [
@@ -66,8 +68,16 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "dependencies": {
+  "peerDependencies": {
     "docx": "^9.7.1",
     "html2pdf.js": "^0.14.0"
+  },
+  "peerDependenciesMeta": {
+    "docx": {
+      "optional": true
+    },
+    "html2pdf.js": {
+      "optional": true
+    }
   }
 }
