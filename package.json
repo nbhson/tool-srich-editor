@@ -1,5 +1,5 @@
 {
-  "name": "srich-editor",
+  "name": "@nbhson43/s-rich-editor",
   "version": "1.1.1",
   "description": "A lightweight, dependency-free rich text editor built with Vanilla JavaScript",
   "main": "dist/srich-editor.umd.js",
@@ -79,5 +79,8 @@
     "html2pdf.js": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
