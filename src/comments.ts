@@ -569,6 +569,7 @@ export function createCommentsManager(
       const closeBtn = document.createElement('button');
       closeBtn.className = 're-dialog-close';
       closeBtn.type = 'button';
+      closeBtn.setAttribute('aria-label', 'Close');
       closeBtn.innerHTML = '\u00d7';
       header.appendChild(title);
       header.appendChild(closeBtn);

@@ -100,6 +100,7 @@ export function showLinkTooltip(
     urlInput.type = 'url';
     urlInput.placeholder = 'https://example.com';
     urlInput.value = currentUrl;
+    urlInput.setAttribute('aria-label', currentUrl ? loc.editLink : loc.insertLink);
 
     urlRow.appendChild(urlIcon);
     urlRow.appendChild(urlInput);
@@ -117,6 +118,7 @@ export function showLinkTooltip(
     textInput.type = 'text';
     textInput.placeholder = loc.displayText;
     textInput.value = currentText;
+    textInput.setAttribute('aria-label', loc.displayText);
 
     textRow.appendChild(textIcon);
     textRow.appendChild(textInput);

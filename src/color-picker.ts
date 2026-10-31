@@ -37,6 +37,8 @@ export function showColorPicker(anchorEl: HTMLElement): Promise<string | null> {
 
     function cleanup() {
       input.remove();
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeydown);
     }
 
     input.addEventListener('input', () => {
@@ -54,7 +56,6 @@ export function showColorPicker(anchorEl: HTMLElement): Promise<string | null> {
       if (e.target !== input) {
         resolve(null);
         cleanup();
-        document.removeEventListener('mousedown', handleClickOutside);
       }
     }
     setTimeout(() => {
@@ -66,7 +67,6 @@ export function showColorPicker(anchorEl: HTMLElement): Promise<string | null> {
       if (e.key === 'Escape') {
         resolve(null);
         cleanup();
-        document.removeEventListener('keydown', handleKeydown);
       }
     }
     document.addEventListener('keydown', handleKeydown);
