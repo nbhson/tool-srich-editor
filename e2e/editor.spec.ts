@@ -427,13 +427,10 @@ test.describe('SRich Editor - E2E Tests', () => {
       await page.locator(editorSelector).click();
       await page.locator(`${toolbarSelector} button[data-command="createLink"]`).click();
       await page.waitForSelector('.re-link-tooltip');
-      // Click in the bottom-right corner of the viewport, well outside the tooltip
-      const viewport = page.viewportSize();
-      if (viewport) {
-        await page.mouse.click(viewport.width - 10, viewport.height - 10);
-      } else {
-        await page.mouse.click(1200, 800);
-      }
+      // Click the page heading — on the document but far from the tooltip.
+      // (Clicking the extreme viewport corner can land on the page scrollbar,
+      // which does not dispatch pointerdown events to the document.)
+      await page.locator('h1').click();
       await page.waitForSelector('.re-link-tooltip', { state: 'detached' });
     });
 
