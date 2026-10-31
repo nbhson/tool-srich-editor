@@ -2,8 +2,8 @@
 
 A lightweight, dependency-free rich text editor built with Vanilla JavaScript.
 
-[![npm version](https://img.shields.io/npm/v/srich-editor.svg)](https://www.npmjs.com/package/srich-editor)
-[![license](https://img.shields.io/npm/l/srich-editor.svg)](https://github.com/nbhson/srich-editor/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@nbhson43/s-rich-editor.svg)](https://www.npmjs.com/package/@nbhson43/s-rich-editor)
+[![license](https://img.shields.io/npm/l/@nbhson43/s-rich-editor.svg)](https://github.com/nbhson/srich-editor/blob/main/LICENSE)
 
 <p align="center">
   <img src="demo/screenshot.png" alt="SRich Editor Demo" width="100%">
@@ -68,7 +68,7 @@ A lightweight, dependency-free rich text editor built with Vanilla JavaScript.
 ## Installation
 
 ```bash
-npm install srich-editor
+npm install @nbhson43/s-rich-editor
 ```
 
 ## Quick Start
@@ -76,8 +76,8 @@ npm install srich-editor
 ### Using ES Modules (Recommended)
 
 ```javascript
-import { createEditor } from 'srich-editor';
-import 'srich-editor/dist/styles.css';
+import { createEditor } from '@nbhson43/s-rich-editor';
+import '@nbhson43/s-rich-editor/dist/styles.css';
 
 const editor = createEditor({
   container: '#editor',
@@ -99,12 +99,12 @@ editor.setContent('<p>Hello World</p>');
 If you're using a bundler (Webpack, Vite, Parcel, etc.), install the package and use ES Modules:
 
 ```bash
-npm install srich-editor
+npm install @nbhson43/s-rich-editor
 ```
 
 ```javascript
-import { createEditor } from 'srich-editor';
-import 'srich-editor/dist/styles.css';
+import { createEditor } from '@nbhson43/s-rich-editor';
+import '@nbhson43/s-rich-editor/dist/styles.css';
 
 const editor = createEditor({
   container: '#editor',
@@ -123,14 +123,14 @@ No installation needed — just add these to your HTML `<head>`:
   <meta charset="UTF-8">
   <title>My Page</title>
   <!-- 1. Load CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/srich-editor/dist/styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/@nbhson43/s-rich-editor/dist/styles.css">
 </head>
 <body>
   <!-- 2. Add a container div -->
   <div id="editor"></div>
 
   <!-- 3. Load UMD script (exposes global `SRichEditor`) -->
-  <script src="https://unpkg.com/srich-editor/dist/srich-editor.umd.js"></script>
+  <script src="https://unpkg.com/@nbhson43/s-rich-editor/dist/srich-editor.umd.js"></script>
   <script>
     const editor = SRichEditor.createEditor({
       container: '#editor',
@@ -152,7 +152,7 @@ No installation needed — just add these to your HTML `<head>`:
 <head>
   <meta charset="UTF-8">
   <title>My Page</title>
-  <link rel="stylesheet" href="https://unpkg.com/srich-editor/dist/styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/@nbhson43/s-rich-editor/dist/styles.css">
 </head>
 <body>
   <div id="editor"></div>
@@ -160,12 +160,12 @@ No installation needed — just add these to your HTML `<head>`:
   <script type="importmap">
   {
     "imports": {
-      "srich-editor": "https://unpkg.com/srich-editor/dist/srich-editor.esm.js"
+      "srich-editor": "https://unpkg.com/@nbhson43/s-rich-editor/dist/srich-editor.esm.js"
     }
   }
   </script>
   <script type="module">
-    import { createEditor } from 'srich-editor';
+    import { createEditor } from '@nbhson43/s-rich-editor';
 
     const editor = createEditor({
       container: '#editor',
@@ -224,7 +224,7 @@ Creates a new editor instance.
 `getContent()` returns the current HTML content of the editor as a string. This is useful for saving or processing the editor's content.
 
 ```javascript
-import { createEditor } from 'srich-editor';
+import { createEditor } from '@nbhson43/s-rich-editor';
 
 const editor = createEditor({
   container: '#editor',
@@ -268,8 +268,8 @@ const editor = createEditor({
 ## Custom Toolbar
 
 ```javascript
-import { createEditor } from 'srich-editor';
-import { defaultToolbar } from 'srich-editor';
+import { createEditor } from '@nbhson43/s-rich-editor';
+import { defaultToolbar } from '@nbhson43/s-rich-editor';
 
 const editor = createEditor({
   container: '#editor',
@@ -332,8 +332,8 @@ Pass a `comments` option when creating the editor. A 💬 **Comments** button wi
 
 ```javascript
 // ES Modules
-import { createEditor } from 'srich-editor';
-import 'srich-editor/dist/styles.css';
+import { createEditor } from '@nbhson43/s-rich-editor';
+import '@nbhson43/s-rich-editor/dist/styles.css';
 
 const editor = createEditor({
   container: '#editor',
@@ -417,8 +417,8 @@ npm install html2pdf.js docx file-saver
 ```
 
 ```javascript
-import { createEditor } from 'srich-editor';
-import 'srich-editor/dist/styles.css';
+import { createEditor } from '@nbhson43/s-rich-editor';
+import '@nbhson43/s-rich-editor/dist/styles.css';
 
 const editor = createEditor({
   container: '#editor',
@@ -443,7 +443,7 @@ Include these **before** the editor script:
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
 <!-- SRich Editor -->
-<script src="https://unpkg.com/srich-editor/dist/srich-editor.umd.js"></script>
+<script src="https://unpkg.com/@nbhson43/s-rich-editor/dist/srich-editor.umd.js"></script>
 <script>
   var editor = SRichEditor.createEditor({
     container: '#editor',
@@ -478,8 +478,8 @@ Include these **before** the editor script:
 
 ```jsx
 import { useEffect, useRef } from 'react';
-import { createEditor } from 'srich-editor';
-import 'srich-editor/dist/styles.css';
+import { createEditor } from '@nbhson43/s-rich-editor';
+import '@nbhson43/s-rich-editor/dist/styles.css';
 
 function SRichEditor({ onChange }) {
   const containerRef = useRef(null);
@@ -506,8 +506,8 @@ function SRichEditor({ onChange }) {
 
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
-import { createEditor } from 'srich-editor';
-import 'srich-editor/dist/styles.css';
+import { createEditor } from '@nbhson43/s-rich-editor';
+import '@nbhson43/s-rich-editor/dist/styles.css';
 
 const editorContainer = ref(null);
 let editor = null;
@@ -528,7 +528,7 @@ onUnmounted(() => editor?.destroy());
 #### 1. Install the package
 
 ```bash
-npm install srich-editor
+npm install @nbhson43/s-rich-editor
 ```
 
 #### 2. Create a wrapper component
@@ -548,8 +548,8 @@ import {
   Input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { createEditor, RichEditorInstance } from 'srich-editor';
-import 'srich-editor/dist/styles.css';
+import { createEditor, RichEditorInstance } from '@nbhson43/s-rich-editor';
+import '@nbhson43/s-rich-editor/dist/styles.css';
 
 @Component({
   selector: 'app-srich-editor',
@@ -669,6 +669,9 @@ srichEditor/
 │   ├── editor.ts         # Core editor logic
 │   ├── comments.ts       # Comments system (sidebar, highlights)
 │   ├── comments.test.ts  # Unit tests for comments module
+│   ├── editor.test.ts    # Unit tests for editor core
+│   ├── toolbar.test.ts   # Unit tests for toolbar config
+│   ├── color-picker.test.ts # Unit tests for color picker
 │   ├── export.ts         # Export to PDF / Word
 │   ├── sanitizer.ts      # HTML sanitizer (XSS protection)
 │   ├── sanitizer.test.ts # Unit tests for sanitizer

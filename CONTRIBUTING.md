@@ -5,7 +5,7 @@ Contributions are welcome! Please follow these guidelines:
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/srich-editor.git`
+2. Clone your fork: `git clone https://github.com/nbhson/srich-editor.git`
 3. Install dependencies: `npm install`
 4. Run dev mode: `npm run dev`
 5. Run tests: `npm test`
@@ -20,7 +20,7 @@ Contributions are welcome! Please follow these guidelines:
 ## Code Style
 
 - TypeScript strict mode
-- ESLint + Prettier for formatting
+- ESLint (`npm run lint`) for linting
 - Add unit tests for new features
 - Keep E2E tests passing
 
