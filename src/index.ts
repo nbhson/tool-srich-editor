@@ -55,10 +55,10 @@ import { defaultToolbar, icons } from './toolbar';
 import { showLinkDialog, showLinkTooltip, showImageDialog } from './dialog';
 import { sanitizeHTML, sanitizeLinkURL, sanitizeImageURL } from './sanitizer';
 import { createCommentsManager, Comment, CommentReply, CommentsOptions, CommentsLocale } from './comments';
-import { exportToPDF, exportToDocx } from './export';
+import { exportToPDF, exportToDocx, exportToWord } from './export';
 
 export { createEditor };
-export { createCommentsManager, exportToPDF, exportToDocx };
+export { createCommentsManager, exportToPDF, exportToDocx, exportToWord };
 export type {
   RichEditorOptions,
   RichEditorInstance,

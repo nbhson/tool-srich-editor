@@ -1,10 +1,30 @@
 /**
  * Export module for SRich Editor
  * Provides functionality to export editor content to PDF and Word (.docx) formats.
- * Uses html2pdf.js for PDF export and docx library for Word export.
+ * Uses html2pdf.js for PDF export (loaded lazily) and docx library for Word export.
  */
 
-import html2pdf from 'html2pdf.js';
+// ─── Lazy html2pdf resolver ──────────────────────────────────────────
+// The `html2pdf.js` library is an optional external dependency.
+// • UMD / CDN: user loads <script src="...html2pdf.bundle.min.js"> → window.html2pdf
+// • Bundler (Vite/Webpack): resolved via dynamic import (kept out of the
+//   critical path so the editor core stays dependency-free).
+async function getHtml2pdf(): Promise<any> {
+  if (typeof window !== 'undefined' && (window as any).html2pdf) {
+    return (window as any).html2pdf;
+  }
+  try {
+    const mod = await import('html2pdf.js');
+    return (mod as any).default ?? mod;
+  } catch {
+    throw new Error(
+      'PDF export requires the "html2pdf.js" library.\n' +
+      'Load it via CDN before the editor:\n' +
+      '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>\n' +
+      'Or install via npm: npm install html2pdf.js',
+    );
+  }
+}
 
 // ─── Lazy docx resolver ──────────────────────────────────────────────
 // The `docx` library is an optional external dependency.
@@ -106,10 +126,10 @@ function sanitizeFilename(name: string): string {
 /**
  * Export the editor content as PDF using html2pdf.js library.
  */
-export function exportToPDF(
+export async function exportToPDF(
   contentArea: HTMLElement,
   options?: ExportOptions,
-): void {
+): Promise<void> {
   const title = options?.documentTitle || 'Document';
   const content = prepareContentForExport(contentArea);
 
@@ -135,18 +155,18 @@ export function exportToPDF(
     },
   };
 
-  html2pdf()
-    .set(opt)
-    .from(container)
-    .save()
-    .then(() => {
-      document.body.removeChild(container);
-      options?.onAfterExport?.('pdf');
-    })
-    .catch((err: any) => {
-      console.error('PDF export failed:', err);
-      if (container.parentNode) document.body.removeChild(container);
-    });
+  try {
+    const html2pdf = await getHtml2pdf();
+    await html2pdf()
+      .set(opt)
+      .from(container)
+      .save();
+    options?.onAfterExport?.('pdf');
+  } catch (err: any) {
+    console.error('PDF export failed:', err);
+  } finally {
+    if (container.parentNode) container.parentNode.removeChild(container);
+  }
 }
 
 // ─────────── Word (.doc) Export (HTML-based fallback) ────────────────

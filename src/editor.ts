@@ -259,6 +259,14 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
     return false;
   }
 
+  /** Create a sanitized anchor element for the given URL and text */
+  function createAnchor(url: string, text: string): HTMLAnchorElement {
+    const anchor = document.createElement('a');
+    anchor.href = sanitizeLinkURL(url);
+    anchor.textContent = text;
+    return anchor;
+  }
+
   // ─────────── Link handling ───────────
   async function handleCreateLink(): Promise<void> {
     const { selectedText, linkUrl, linkNode } = getSelectionInfo();
@@ -308,17 +316,13 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
               selection.removeAllRanges();
               selection.addRange(range);
             } else {
-              const anchor = document.createElement('a');
-              anchor.href = sanitizeLinkURL(result.url);
-              anchor.textContent = result.text || selectedText;
+              const anchor = createAnchor(result.url, result.text || selectedText);
               contentArea.appendChild(anchor);
             }
             handleInput();
           }
         } else {
-          const anchor = document.createElement('a');
-          anchor.href = sanitizeLinkURL(result.url);
-          anchor.textContent = result.text || result.url;
+          const anchor = createAnchor(result.url, result.text || result.url);
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
@@ -427,14 +431,14 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
     }
 
     // Handle export commands
-    if (command === 're:exportPDF') {
+    if (command === 're:exportPDF' || command === 're:exportWord') {
       const exportOpts = typeof config.export === 'object' ? config.export : {};
-      exportToPDF(contentArea, { documentTitle: exportOpts.documentTitle || document.title });
-      return;
-    }
-    if (command === 're:exportWord') {
-      const exportOpts2 = typeof config.export === 'object' ? config.export : {};
-      exportToDocx(contentArea, { documentTitle: exportOpts2.documentTitle || document.title });
+      const exportOptions = { documentTitle: exportOpts.documentTitle || document.title };
+      if (command === 're:exportPDF') {
+        void exportToPDF(contentArea, exportOptions);
+      } else {
+        void exportToDocx(contentArea, exportOptions);
+      }
       return;
     }
 
@@ -561,6 +565,11 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
           btn.innerHTML = icons[iconName];
         } else {
           btn.textContent = item.name || item.command;
+        }
+
+        // Color commands open a picker popup
+        if (item.command === 'foreColor' || item.command === 'hiliteColor') {
+          btn.setAttribute('aria-haspopup', 'true');
         }
 
         btn.addEventListener('mousedown', (e) => {

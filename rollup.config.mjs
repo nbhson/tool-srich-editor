@@ -2,6 +2,7 @@ import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import postcss from 'rollup-plugin-postcss';
 import dts from 'rollup-plugin-dts';
+import { rmSync } from 'node:fs';
 
 const banner = `/*!
  * SRich Editor v1.0.0
@@ -11,16 +12,26 @@ const banner = `/*!
 
 export default [
   // Build CSS
+  // The postcss plugin extracts the CSS as an asset; the JS chunk itself is
+  // written to a temp file and removed afterwards, so the extracted asset is
+  // not overwritten (fixes the "overwrites a previously emitted file" warning).
   {
     input: 'src/styles.css',
     output: {
-      file: 'dist/styles.css',
+      file: 'dist/.css-build-tmp.js',
+      format: 'es',
     },
     plugins: [
       postcss({
         extract: 'styles.css',
         minimize: true,
       }),
+      {
+        name: 'cleanup-css-tmp-chunk',
+        writeBundle() {
+          rmSync('dist/.css-build-tmp.js', { force: true });
+        },
+      },
     ],
   },
   // Build UMD and ESM bundles
