@@ -34,36 +34,65 @@ const defaultDialogLocale = {
 
 type DialogLocale = typeof defaultDialogLocale;
 
+/** Restore focus to the element that was focused before a dialog opened */
+function restoreFocusTo(previouslyFocused: HTMLElement | null): void {
+  if (previouslyFocused && previouslyFocused.isConnected) {
+    previouslyFocused.focus({ preventScroll: true } as FocusOptions);
+  }
+}
+
+/** Focus trap: cycle Tab/Shift+Tab within the given container */
+function trapTabKey(container: HTMLElement, e: KeyboardEvent): void {
+  const focusable = container.querySelectorAll<HTMLElement>(
+    'input, button, textarea, select, [tabindex]:not([tabindex="-1"])',
+  );
+  if (focusable.length === 0) return;
+  const firstEl = focusable[0]!;
+  const lastEl = focusable[focusable.length - 1]!;
+  if (e.shiftKey && document.activeElement === firstEl) {
+    e.preventDefault();
+    lastEl.focus();
+  } else if (!e.shiftKey && document.activeElement === lastEl) {
+    e.preventDefault();
+    firstEl.focus();
+  }
+}
+
 /**
  * Calculate tooltip position based on the current selection
  */
 function getSelectionRect(): DOMRect | null {
   const selection = window.getSelection();
   if (selection && selection.rangeCount > 0) {
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    // If selection is collapsed (no text selected), use caret position
-    if (rect.width === 0 && rect.height === 0) {
-      // Try to get caret coordinates
-      const tempRange = range.cloneRange();
-      tempRange.collapse(true);
-      const tempRect = tempRange.getBoundingClientRect();
-      if (tempRect.width === 0 && tempRect.height === 0) {
-        // Fallback: insert a temporary element to get position
-        const span = document.createElement('span');
-        span.textContent = '\u200b'; // zero-width space
-        tempRange.insertNode(span);
-        const spanRect = span.getBoundingClientRect();
-        span.parentNode?.removeChild(span);
-        // Normalize to clean up the text node
-        if (range.startContainer.parentNode) {
-          range.startContainer.parentNode.normalize();
+    try {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      // If selection is collapsed (no text selected), use caret position
+      if (rect.width === 0 && rect.height === 0) {
+        // Try to get caret coordinates
+        const tempRange = range.cloneRange();
+        tempRange.collapse(true);
+        const tempRect = tempRange.getBoundingClientRect();
+        if (tempRect.width === 0 && tempRect.height === 0) {
+          // Fallback: insert a temporary element to get position
+          const span = document.createElement('span');
+          span.textContent = '\u200b'; // zero-width space
+          tempRange.insertNode(span);
+          const spanRect = span.getBoundingClientRect();
+          span.parentNode?.removeChild(span);
+          // Normalize to clean up the text node
+          if (range.startContainer.parentNode) {
+            range.startContainer.parentNode.normalize();
+          }
+          return spanRect;
         }
-        return spanRect;
+        return tempRect;
       }
-      return tempRect;
+      return rect;
+    } catch {
+      // Range rect APIs unavailable (e.g. non-browser environments) — fall back to centering
+      return null;
     }
-    return rect;
   }
   return null;
 }
@@ -77,6 +106,9 @@ export function showLinkTooltip(
   locale?: Partial<DialogLocale>,
 ): Promise<LinkDialogResult | null> {
   const loc = { ...defaultDialogLocale, ...locale };
+
+  // Remember the element to restore focus to when the dialog closes
+  const previouslyFocused = document.activeElement as HTMLElement | null;
 
   return new Promise((resolve) => {
     // Remove any existing tooltip
@@ -222,7 +254,12 @@ export function showLinkTooltip(
     }
 
     function cleanup() {
+      // Always detach the document-level outside-click listeners, whichever
+      // path closes the tooltip (cancel, confirm, outside click, Escape).
+      document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
       tooltip.remove();
+      restoreFocusTo(previouslyFocused);
     }
 
     function confirm() {
@@ -258,11 +295,10 @@ export function showLinkTooltip(
 
     // Close on click outside
     function handleClickOutside(e: PointerEvent | MouseEvent) {
+      if (!tooltip.isConnected) return; // already closed via another path
       if (!tooltip.contains(e.target as Node)) {
         cleanup();
         resolve(null);
-        document.removeEventListener('pointerdown', handleClickOutside);
-        document.removeEventListener('mousedown', handleClickOutside);
       }
     }
     // Delay to avoid immediately closing from the click that opened it
@@ -281,6 +317,10 @@ export function showLinkTooltip(
         e.preventDefault();
         e.stopPropagation();
         confirm();
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        trapTabKey(tooltip, e);
       }
     });
 
@@ -304,6 +344,7 @@ export function showLinkDialog(
   locale?: Partial<DialogLocale>,
 ): Promise<LinkDialogResult | null> {
   const loc = { ...defaultDialogLocale, ...locale };
+  const previouslyFocused = document.activeElement as HTMLElement | null;
 
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
@@ -413,6 +454,7 @@ export function showLinkDialog(
 
     function cleanup() {
       overlay.remove();
+      restoreFocusTo(previouslyFocused);
     }
 
     function confirm() {
@@ -453,18 +495,7 @@ export function showLinkDialog(
         e.preventDefault();
         confirm();
       } else if (e.key === 'Tab') {
-        const focusable = dialog.querySelectorAll<HTMLElement>(
-          'input, button, [tabindex]:not([tabindex="-1"])',
-        );
-        const firstEl = focusable[0];
-        const lastEl = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === firstEl) {
-          e.preventDefault();
-          lastEl.focus();
-        } else if (!e.shiftKey && document.activeElement === lastEl) {
-          e.preventDefault();
-          firstEl.focus();
-        }
+        trapTabKey(dialog, e);
       }
     });
   });
@@ -483,6 +514,7 @@ export function showImageDialog(
   locale?: Partial<DialogLocale>,
 ): Promise<ImageDialogResult | null> {
   const loc = { ...defaultDialogLocale, ...locale };
+  const previouslyFocused = document.activeElement as HTMLElement | null;
 
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
@@ -603,6 +635,7 @@ export function showImageDialog(
 
     function cleanup() {
       overlay.remove();
+      restoreFocusTo(previouslyFocused);
     }
 
     function confirm() {
@@ -643,18 +676,7 @@ export function showImageDialog(
         e.preventDefault();
         confirm();
       } else if (e.key === 'Tab') {
-        const focusable = dialog.querySelectorAll<HTMLElement>(
-          'input, button, [tabindex]:not([tabindex="-1"])',
-        );
-        const firstEl = focusable[0];
-        const lastEl = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === firstEl) {
-          e.preventDefault();
-          lastEl.focus();
-        } else if (!e.shiftKey && document.activeElement === lastEl) {
-          e.preventDefault();
-          firstEl.focus();
-        }
+        trapTabKey(dialog, e);
       }
     });
   });
