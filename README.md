@@ -61,9 +61,11 @@ A lightweight, dependency-free rich text editor built with Vanilla JavaScript.
 - 📱 **Responsive** - Works on all screen sizes
 - 🔧 **Simple API** - Easy to integrate and use
 - ⌨️ **Keyboard Shortcuts** - Ctrl+B, Ctrl+I, Ctrl+U support
+- ♿ **Full Keyboard Toolbar Navigation** - Arrow keys, Home/End, Enter/Space; dialogs use a focus trap and restore focus on close
+- 📋 **Smart Paste** - Basic formatting from the clipboard is preserved and sanitized (scripts/event handlers/unsafe URLs stripped)
 - 📊 **Status Bar** - Word and character count
 - 💬 **Comments** - Select text to add comments, reply, resolve/delete
-- 📄 **Export Word/PDF** - Export to PDF (via `html2pdf.js`) and Word `.docx` (via `docx`)
+- 📄 **Export Word/PDF** - Export to PDF (via `html2pdf.js`) and Word `.docx` (via `docx`), including nested list indentation
 
 ## Installation
 
@@ -196,6 +198,8 @@ Creates a new editor instance.
 | `readOnly` | `boolean` | `false` | Read-only mode |
 | `onChange` | `(content: string) => void` | - | Content change callback |
 | `onReady` | `() => void` | - | Editor ready callback |
+| `maxUndoLevels` | `number` | `100` | Maximum number of undo/redo history levels |
+| `maxUndoBytes` | `number` | `2097152` | Maximum total size (UTF-8 bytes) of HTML kept in the undo/redo history; oldest snapshots are evicted when exceeded. `0` = unlimited |
 
 #### Editor Instance Methods
 
@@ -218,6 +222,7 @@ Creates a new editor instance.
 | `redo()` | `void` | Redo last undone change |
 | `canUndo()` | `boolean` | Check if undo is available |
 | `canRedo()` | `boolean` | Check if redo is available |
+| `getSelection()` | `{ text, html, isCollapsed }` | Info about the current selection inside the editor (empty when nothing is selected) |
 
 ### Getting Content with `getContent()`
 
@@ -460,7 +465,7 @@ Include these **before** the editor script:
 | 📝 **Export Word** | Generates Office Open XML `.docx` file | `docx` + `file-saver` |
 
 - **PDF**: Uses `html2pdf.js` to render the editor content as a PDF with margins, JPEG quality, and A4 page format.
-- **Word**: Parses the DOM tree (headings, bold, italic, underline, lists, tables, etc.) and generates a proper `.docx` file using the `docx` library.
+- **Word**: Parses the DOM tree (headings, bold, italic, underline, lists, tables, etc.) and generates a proper `.docx` file using the `docx` library. Nested lists are exported with real indentation levels (up to 8 levels deep).
 - **Word fallback**: If `docx` is not loaded, falls back to a basic HTML `.doc` file that Word can open.
 
 ## Bundle Sizes
