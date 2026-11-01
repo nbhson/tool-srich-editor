@@ -44,6 +44,12 @@ export interface RichEditorOptions {
   export?: boolean | ExportConfig;
   /** Number of undo levels to keep */
   maxUndoLevels?: number;
+  /**
+   * Maximum total size (in UTF-8 bytes) of the HTML snapshots kept in the
+   * undo/redo stacks. When exceeded, the oldest snapshots are evicted.
+   * 0 = unlimited. Defaults to 2 MB.
+   */
+  maxUndoBytes?: number;
   /** Auto-focus editor on creation */
   autoFocus?: boolean;
 }

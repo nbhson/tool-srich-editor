@@ -16,6 +16,7 @@ const defaultOptions: Partial<RichEditorOptions> = {
   readOnly: false,
   maxLength: 0,
   maxUndoLevels: 100,
+  maxUndoBytes: 2 * 1024 * 1024, // 2 MB of HTML snapshots
   autoFocus: false,
 };
 
@@ -108,28 +109,70 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
   const undoStack: string[] = [];
   const redoStack: string[] = [];
   const maxUndoLevels = config.maxUndoLevels || 100;
+  // 0 = unlimited; otherwise evict oldest snapshots once the stack exceeds this
+  // total size (UTF-8 bytes). Guards against unbounded memory on large documents.
+  const maxUndoBytes = config.maxUndoBytes ?? 0;
   let isUndoRedoAction = false;
   let lastSavedContent = '';
+
+  /** Estimate the UTF-8 byte size of an HTML string */
+  function estimateBytes(html: string): number {
+    let bytes = 0;
+    for (let i = 0; i < html.length; i++) {
+      const code = html.charCodeAt(i);
+      if (code < 0x80) bytes += 1;
+      else if (code < 0x800) bytes += 2;
+      else if (code >= 0xd800 && code <= 0xdbff) { bytes += 4; i++; } // surrogate pair
+      else bytes += 3;
+    }
+    return bytes;
+  }
+
+  /** Running UTF-8 byte totals for each stack (memory accounting) */
+  const stackBytes = { undo: 0, redo: 0 };
+
+  /** Push an HTML snapshot with byte accounting, evicting oldest entries when over the caps */
+  function pushWithCap(stack: string[], html: string, kind: 'undo' | 'redo'): void {
+    stack.push(html);
+    stackBytes[kind] += estimateBytes(html);
+    while (
+      stack.length > 1 &&
+      (stack.length > maxUndoLevels || (maxUndoBytes > 0 && stackBytes[kind] > maxUndoBytes))
+    ) {
+      stackBytes[kind] -= estimateBytes(stack[0]!);
+      stack.shift();
+    }
+  }
+
+  /** Pop an HTML snapshot, updating byte accounting */
+  function popWithCap(stack: string[], kind: 'undo' | 'redo'): string {
+    const entry = stack.pop()!;
+    stackBytes[kind] -= estimateBytes(entry);
+    return entry;
+  }
+
+  /** Clear a stack, resetting byte accounting */
+  function clearStack(stack: string[], kind: 'undo' | 'redo'): void {
+    stack.length = 0;
+    stackBytes[kind] = 0;
+  }
 
   /** Save current state to undo stack */
   function saveToUndoStack(): void {
     if (isUndoRedoAction) return;
     const current = contentArea.innerHTML;
     if (current === lastSavedContent) return;
-    undoStack.push(lastSavedContent);
-    if (undoStack.length > maxUndoLevels) {
-      undoStack.shift();
-    }
+    pushWithCap(undoStack, lastSavedContent, 'undo');
     lastSavedContent = current;
-    redoStack.length = 0; // Clear redo on new change
+    clearStack(redoStack, 'redo'); // Clear redo on new change
     updateUndoRedoButtons();
   }
 
   /** Initialize the undo stack with current content */
   function initUndoStack(): void {
     lastSavedContent = contentArea.innerHTML;
-    undoStack.length = 0;
-    redoStack.length = 0;
+    clearStack(undoStack, 'undo');
+    clearStack(redoStack, 'redo');
     updateUndoRedoButtons();
   }
 
@@ -473,8 +516,8 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
   function performUndo(): void {
     if (undoStack.length === 0) return;
     const current = contentArea.innerHTML;
-    const prev = undoStack.pop()!;
-    redoStack.push(current);
+    const prev = popWithCap(undoStack, 'undo');
+    pushWithCap(redoStack, current, 'redo');
     isUndoRedoAction = true;
     contentArea.innerHTML = prev;
     lastSavedContent = prev;
@@ -486,8 +529,8 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
   function performRedo(): void {
     if (redoStack.length === 0) return;
     const current = contentArea.innerHTML;
-    const next = redoStack.pop()!;
-    undoStack.push(current);
+    const next = popWithCap(redoStack, 'redo');
+    pushWithCap(undoStack, current, 'undo');
     isUndoRedoAction = true;
     contentArea.innerHTML = next;
     lastSavedContent = next;

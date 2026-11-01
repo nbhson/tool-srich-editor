@@ -395,4 +395,50 @@ describe('createEditor', () => {
     });
     expect(editor.queryCommandState('bold')).toBe(false);
   });
+
+  // ─── Undo stack byte cap (maxUndoBytes) ───
+  it('should evict oldest undo entries when maxUndoBytes is exceeded', () => {
+    // big = 106 bytes; cap at 100 → only the newest large snapshot is kept
+    const big = `<p>${'x'.repeat(100)}</p>`;
+    editor = create({ maxUndoBytes: 100 });
+
+    type('<p>v1</p>');          // 10 bytes
+    type(big);                  // 106 bytes → total 116 > 100 → evicts older entries
+    expect(editor.canUndo()).toBe(true);
+
+    type('<p>v3</p>');
+    editor.undo();
+    expect(editor.getContent()).toContain('xxxx'); // undoes to `big`, not v1
+
+    // Stack now empty → nothing older to undo (v1 was evicted)
+    editor.undo();
+    expect(editor.canUndo()).toBe(false);
+    expect(editor.getContent()).not.toContain('v1');
+  });
+
+  it('should keep at least one undo entry even when a single snapshot exceeds maxUndoBytes', () => {
+    const huge = `<p>${'y'.repeat(500)}</p>`; // way over the cap
+    editor = create({ maxUndoBytes: 10 });
+
+    type(huge);
+    expect(editor.canUndo()).toBe(true);
+    editor.undo();
+    expect(editor.canUndo()).toBe(false);
+  });
+
+  it('should allow unlimited undo memory with maxUndoBytes: 0', () => {
+    editor = create({ maxUndoBytes: 0, maxUndoLevels: 100 });
+    for (let i = 0; i < 20; i++) type(`<p>v${i}</p>`);
+    // All 20 levels retained
+    for (let i = 0; i < 20; i++) editor.undo();
+    expect(editor.canUndo()).toBe(false);
+    expect(editor.getContent()).toBe('');
+  });
+
+  it('should keep default 100 levels behavior intact', () => {
+    editor = create({ maxUndoBytes: 0 });
+    for (let i = 0; i < 150; i++) type(`<p>v${i}</p>`);
+    for (let i = 0; i < 100; i++) editor.undo();
+    expect(editor.canUndo()).toBe(false);
+  });
 });
