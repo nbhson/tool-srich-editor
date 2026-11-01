@@ -517,4 +517,96 @@ describe('createEditor', () => {
     content.dispatchEvent(pasteEvent('', 'plain text'));
     expect((spy as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
   });
+
+  // ─── Toolbar keyboard navigation ───
+  function getToolbar(): HTMLElement {
+    return host.querySelector('.re-toolbar') as HTMLElement;
+  }
+
+  function toolbarButtons(): HTMLElement[] {
+    return Array.from(getToolbar().querySelectorAll<HTMLElement>('.re-btn'));
+  }
+
+  function focusableToolbarButtons(): HTMLElement[] {
+    return toolbarButtons().filter((b) => b.getAttribute('aria-disabled') !== 'true');
+  }
+
+  function toolbarKey(key: string, init: KeyboardEventInit = {}): void {
+    getToolbar().dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
+  }
+
+  it('ArrowRight moves focus to the next toolbar button, wrapping at the end', () => {
+    editor = create();
+    const btns = focusableToolbarButtons();
+    btns[0]!.focus();
+
+    toolbarKey('ArrowRight');
+    expect(document.activeElement).toBe(btns[1]);
+
+    // Wrap: last → first
+    btns[btns.length - 1]!.focus();
+    toolbarKey('ArrowRight');
+    expect(document.activeElement).toBe(btns[0]);
+  });
+
+  it('ArrowLeft moves focus to the previous toolbar button, wrapping at the start', () => {
+    editor = create();
+    const btns = focusableToolbarButtons();
+    btns[0]!.focus();
+
+    toolbarKey('ArrowLeft');
+    expect(document.activeElement).toBe(btns[btns.length - 1]);
+
+    toolbarKey('ArrowLeft');
+    expect(document.activeElement).toBe(btns[btns.length - 2]);
+  });
+
+  it('Home/End move focus to the first/last toolbar button', () => {
+    editor = create();
+    const btns = focusableToolbarButtons();
+
+    btns[2]!.focus();
+    toolbarKey('Home');
+    expect(document.activeElement).toBe(btns[0]);
+
+    toolbarKey('End');
+    expect(document.activeElement).toBe(btns[btns.length - 1]);
+  });
+
+  it('arrow navigation skips disabled (aria-disabled) buttons', () => {
+    editor = create();
+    const btns = focusableToolbarButtons();
+    // At start undo/redo have aria-disabled="true" — navigation must skip them
+    const undoBtn = getToolbar().querySelector<HTMLElement>('[data-command="undo"]')!;
+    const redoBtn = getToolbar().querySelector<HTMLElement>('[data-command="redo"]')!;
+    expect(undoBtn.getAttribute('aria-disabled')).toBe('true');
+    expect(redoBtn.getAttribute('aria-disabled')).toBe('true');
+
+    btns[0]!.focus();
+    toolbarKey('ArrowRight');
+    toolbarKey('ArrowLeft');
+    expect(document.activeElement).not.toBe(undoBtn);
+    expect(document.activeElement).not.toBe(redoBtn);
+  });
+
+  it('Enter activates the focused toolbar button', () => {
+    editor = create();
+    const spy = document.execCommand as ReturnType<typeof vi.fn>;
+    const boldBtn = getToolbar().querySelector<HTMLElement>('[data-command="bold"]')!;
+    boldBtn.focus();
+
+    // Key events fire on the focused button and bubble to the toolbar
+    boldBtn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    expect((spy as ReturnType<typeof vi.fn>).mock.calls.some((c) => c[0] === 'bold')).toBe(true);
+  });
+
+  it('Space activates the focused toolbar button', () => {
+    editor = create();
+    const spy = document.execCommand as ReturnType<typeof vi.fn>;
+    const boldBtn = getToolbar().querySelector<HTMLElement>('[data-command="bold"]')!;
+    boldBtn.focus();
+
+    boldBtn.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    expect((spy as ReturnType<typeof vi.fn>).mock.calls.some((c) => c[0] === 'bold')).toBe(true);
+  });
 });
