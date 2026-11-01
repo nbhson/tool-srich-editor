@@ -33,7 +33,7 @@ async function getHtml2pdf(): Promise<any> {
 // We therefore read from `window.docx` first (always available in browser),
 // and fall back to a clear error when the library is missing.
 
-interface DocxModule {
+export interface DocxModule {
   Document: any;
   Packer: any;
   Paragraph: any;
@@ -316,7 +316,10 @@ function htmlToDocxParagraphs(html: string, dx: DocxModule): any[] {
   container.innerHTML = html;
   const paragraphs: any[] = [];
 
-  function processElement(el: HTMLElement): void {
+  /** Maximum nesting depth docx `bullet.level` supports (0–8) */
+  const MAX_LIST_DEPTH = 8;
+
+  function processElement(el: HTMLElement, listDepth: number = 0): void {
     const tag = el.tagName.toUpperCase();
 
     if (['P', 'DIV', 'H1', 'H2', 'H3', 'BLOCKQUOTE', 'PRE'].includes(tag)) {
@@ -380,17 +383,31 @@ function htmlToDocxParagraphs(html: string, dx: DocxModule): any[] {
 
     if (tag === 'LI') {
       const runs: any[] = [];
+      const nestedLists: HTMLElement[] = [];
       for (const child of Array.from(el.childNodes)) {
         if (child.nodeType === Node.TEXT_NODE) {
           const text = child.textContent || '';
           if (text.trim()) runs.push(new dx.TextRun(text));
         } else if (child.nodeType === Node.ELEMENT_NODE) {
-          runs.push(...nodeToRuns(child, dx));
+          const childTag = (child as HTMLElement).tagName.toUpperCase();
+          // Nested lists continue at the next indentation level
+          if (childTag === 'UL' || childTag === 'OL') {
+            nestedLists.push(child as HTMLElement);
+          } else {
+            runs.push(...nodeToRuns(child, dx));
+          }
         }
       }
       paragraphs.push(
-        new dx.Paragraph({ children: runs, bullet: { level: 0 } }),
+        new dx.Paragraph({
+          children: runs,
+          bullet: { level: Math.min(listDepth, MAX_LIST_DEPTH) },
+        }),
       );
+      // Process nested lists after the parent's paragraph to keep document order
+      for (const nested of nestedLists) {
+        processElement(nested, listDepth + 1);
+      }
       return;
     }
 
@@ -415,7 +432,7 @@ function htmlToDocxParagraphs(html: string, dx: DocxModule): any[] {
     if (tag === 'UL' || tag === 'OL') {
       for (const child of Array.from(el.children)) {
         if (child.tagName.toUpperCase() === 'LI')
-          processElement(child as HTMLElement);
+          processElement(child as HTMLElement, listDepth);
       }
       return;
     }
