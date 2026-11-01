@@ -786,7 +786,20 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
     // Save to undo stack before paste
     saveToUndoStack();
 
-    // Let the default paste happen, then update
+    // Preserve basic formatting from the clipboard: prefer the HTML flavor,
+    // sanitized to strip scripts/event handlers/unsafe URLs. Fall back to the
+    // browser's default (plain-text) paste when no HTML flavor is available.
+    const clipboardHtml = e.clipboardData?.getData('text/html') || '';
+    if (clipboardHtml) {
+      e.preventDefault();
+      const clean = sanitizeHTML(clipboardHtml);
+      if (clean) {
+        contentArea.focus();
+        document.execCommand('insertHTML', false, clean);
+      }
+    }
+
+    // Let the paste settle, then update
     setTimeout(() => {
       checkMaxLength();
       handleInput();
@@ -1011,6 +1024,25 @@ export function createEditor(options: RichEditorOptions): RichEditorInstance {
     getWordCount(): number {
       const text = (contentArea.textContent || '').trim();
       return text === '' ? 0 : text.split(/\s+/).length;
+    },
+
+    getSelection(): { text: string; html: string; isCollapsed: boolean } {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return { text: '', html: '', isCollapsed: true };
+      }
+      const range = selection.getRangeAt(0);
+      if (!contentArea.contains(range.commonAncestorContainer)) {
+        return { text: '', html: '', isCollapsed: true };
+      }
+      const fragment = range.cloneContents();
+      const holder = document.createElement('div');
+      holder.appendChild(fragment);
+      return {
+        text: selection.toString(),
+        html: holder.innerHTML,
+        isCollapsed: range.collapsed,
+      };
     },
   };
 

@@ -206,4 +206,6 @@ export interface RichEditorInstance {
   getCharacterCount(): number;
   /** Get current word count */
   getWordCount(): number;
+  /** Get info about the current selection inside the editor */
+  getSelection(): { text: string; html: string; isCollapsed: boolean };
 }

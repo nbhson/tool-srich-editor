@@ -441,4 +441,80 @@ describe('createEditor', () => {
     for (let i = 0; i < 100; i++) editor.undo();
     expect(editor.canUndo()).toBe(false);
   });
+
+  // ─── getSelection() public API ───
+  it('getSelection returns empty info when nothing is selected', () => {
+    editor = create();
+    const sel = editor.getSelection();
+    expect(sel.text).toBe('');
+    expect(sel.html).toBe('');
+    expect(sel.isCollapsed).toBe(true);
+  });
+
+  it('getSelection returns text and HTML of the selected range', () => {
+    editor = create({ content: '<p>Hello <b>world</b> end</p>' });
+    const content = host.querySelector('.re-content') as HTMLElement;
+
+    // Select the <b>world</b> node
+    const bold = content.querySelector('b') as HTMLElement;
+    const range = document.createRange();
+    range.selectNodeContents(bold);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    const sel = editor.getSelection();
+    expect(sel.text).toBe('world');
+    expect(sel.html).toBe('world');
+    expect(sel.isCollapsed).toBe(false);
+  });
+
+  // ─── Paste: keep basic formatting (sanitized) ───
+  /** jsdom lacks the ClipboardEvent constructor — build a paste event manually */
+  function pasteEvent(html: string, text = ''): ClipboardEvent {
+    const data = new Map<string, string>([['text/html', html], ['text/plain', text]]);
+    const event = new Event('paste', { bubbles: true, cancelable: true }) as ClipboardEvent;
+    Object.defineProperty(event, 'clipboardData', {
+      value: { getData: (type: string) => data.get(type) || '' },
+    });
+    return event;
+  }
+
+  it('paste inserts sanitized clipboard HTML via insertHTML', () => {
+    editor = create();
+    const content = host.querySelector('.re-content') as HTMLElement;
+    content.focus();
+    const spy = document.execCommand as ReturnType<typeof vi.fn>;
+    content.dispatchEvent(pasteEvent('<p>Hello <b>bold</b> <em>italic</em></p>', 'Hello bold italic'));
+
+    const insertCall = spy.mock.calls.find((c) => c[0] === 'insertHTML');
+    expect(insertCall).toBeDefined();
+    expect(insertCall![2]).toContain('<b>bold</b>');
+    expect(insertCall![2]).toContain('<em>italic</em>');
+  });
+
+  it('paste strips scripts and event handlers from clipboard HTML', () => {
+    editor = create();
+    const content = host.querySelector('.re-content') as HTMLElement;
+    content.focus();
+    const spy = document.execCommand as ReturnType<typeof vi.fn>;
+    content.dispatchEvent(pasteEvent('<p onclick="evil()">ok</p><script>alert(1)</script>', 'ok'));
+
+    const insertCall = spy.mock.calls.find((c) => c[0] === 'insertHTML');
+    expect(insertCall).toBeDefined();
+    expect(insertCall![2]).not.toContain('<script');
+    expect(insertCall![2]).not.toContain('onclick');
+    expect(insertCall![2]).toContain('ok');
+  });
+
+  it('paste falls back to default behavior without an HTML flavor', () => {
+    editor = create();
+    const content = host.querySelector('.re-content') as HTMLElement;
+    content.focus();
+    // No text/html → editor must not call insertHTML nor preventDefault
+    const spy = document.execCommand as ReturnType<typeof vi.fn>;
+    const callsBefore = spy.mock.calls.length;
+    content.dispatchEvent(pasteEvent('', 'plain text'));
+    expect((spy as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
+  });
 });
