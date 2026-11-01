@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createCommentsManager, Comment, CommentsOptions } from './comments';
 
 // Mock DOM environment (jsdom) — build the structure that toggleSidebar expects
@@ -345,6 +345,85 @@ describe('createCommentsManager', () => {
       expect(quote).not.toBeNull();
       expect(quote!.textContent).toContain('...');
       expect(quote!.textContent).toContain('"');
+    });
+  });
+
+  // ─── showCommentPrompt with fake timers (deterministic close paths) ───
+  describe('showCommentPrompt (fake timers)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      document.querySelectorAll('.re-dialog-overlay').forEach((el) => el.remove());
+    });
+
+    function openPrompt(manager: ReturnType<typeof createCommentsManager>, text = 'selected') {
+      const promise = manager.showCommentPrompt(text);
+      vi.advanceTimersByTime(60); // deferred textarea focus
+      // Pick the newest overlay: earlier tests in this file may leave one behind
+      const overlays = document.querySelectorAll('.re-dialog-overlay');
+      const overlay = overlays[overlays.length - 1] as HTMLElement;
+      const dialog = overlay.querySelector('.re-dialog') as HTMLElement;
+      return { promise, overlay, dialog };
+    }
+
+    it('closes with Escape and resolves null', async () => {
+      const manager = createCommentsManager(contentArea, options);
+      const { promise, dialog, overlay } = openPrompt(manager);
+
+      dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+
+      await expect(promise).resolves.toBeNull();
+      expect(overlay.isConnected).toBe(false);
+    });
+
+    it('closes on overlay (outside) click and resolves null', async () => {
+      const manager = createCommentsManager(contentArea, options);
+      const { promise, overlay } = openPrompt(manager);
+
+      overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      await expect(promise).resolves.toBeNull();
+      expect(overlay.isConnected).toBe(false);
+    });
+
+    it('confirms with Ctrl+Enter and resolves the trimmed comment text', async () => {
+      const manager = createCommentsManager(contentArea, options);
+      const { promise, dialog } = openPrompt(manager);
+
+      const textarea = dialog.querySelector('textarea') as HTMLTextAreaElement;
+      textarea.value = '  my feedback  ';
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true }));
+
+      await expect(promise).resolves.toBe('my feedback');
+      expect(document.querySelector('.re-dialog-overlay')).toBeNull();
+    });
+
+    it('confirms via the confirm button', async () => {
+      const manager = createCommentsManager(contentArea, options);
+      const { promise, dialog } = openPrompt(manager);
+
+      const textarea = dialog.querySelector('textarea') as HTMLTextAreaElement;
+      textarea.value = 'note';
+      (dialog.querySelector('.re-dialog-btn-confirm') as HTMLButtonElement).click();
+
+      await expect(promise).resolves.toBe('note');
+    });
+
+    it('restores focus to the previously focused element when closed', async () => {
+      const manager = createCommentsManager(contentArea, options);
+      const trigger = document.createElement('button');
+      document.body.appendChild(trigger);
+      trigger.focus();
+
+      const { promise, dialog } = openPrompt(manager);
+      dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await expect(promise).resolves.toBeNull();
+
+      expect(document.activeElement).toBe(trigger);
+      trigger.remove();
     });
   });
 });

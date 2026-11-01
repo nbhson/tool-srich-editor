@@ -550,6 +550,7 @@ export function createCommentsManager(
 
   /** Show a prompt dialog for adding a comment */
   function showCommentPrompt(selectedText: string): Promise<string | null> {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
       overlay.className = 're-dialog-overlay';
@@ -622,6 +623,9 @@ export function createCommentsManager(
 
       function cleanup() {
         overlay.remove();
+        if (previouslyFocused && previouslyFocused.isConnected) {
+          previouslyFocused.focus({ preventScroll: true } as FocusOptions);
+        }
       }
 
       function confirm() {
