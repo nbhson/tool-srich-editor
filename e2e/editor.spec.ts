@@ -1307,4 +1307,85 @@ test.describe('SRich Editor - E2E Tests', () => {
       expect(content).toContain('src="https://test.com/img.png"');
     });
   });
+
+  test.describe('Toolbar Keyboard Navigation (a11y)', () => {
+    test('ArrowRight/ArrowLeft move focus between enabled toolbar buttons', async () => {
+      const firstEnabled = page.locator(`${toolbarSelector} .re-btn:not([aria-disabled="true"])`).first();
+      await firstEnabled.focus();
+      await expect(firstEnabled).toBeFocused();
+
+      await page.keyboard.press('ArrowRight');
+      const all = page.locator(`${toolbarSelector} .re-btn:not([aria-disabled="true"])`);
+      await expect(all.nth(1)).toBeFocused();
+
+      await page.keyboard.press('ArrowLeft');
+      await expect(firstEnabled).toBeFocused();
+    });
+
+    test('Home/End move focus to first/last toolbar button', async () => {
+      const all = page.locator(`${toolbarSelector} .re-btn:not([aria-disabled="true"])`);
+      const count = await all.count();
+      await all.nth(1).focus();
+
+      await page.keyboard.press('Home');
+      await expect(all.nth(0)).toBeFocused();
+
+      await page.keyboard.press('End');
+      await expect(all.nth(count - 1)).toBeFocused();
+    });
+
+    test('arrow navigation skips aria-disabled buttons (undo/redo at start)', async () => {
+      const undoBtn = page.locator(`${toolbarSelector} button[data-command="undo"]`);
+      await expect(undoBtn).toHaveAttribute('aria-disabled', 'true');
+
+      const all = page.locator(`${toolbarSelector} .re-btn:not([aria-disabled="true"])`);
+      await all.nth(0).focus();
+      await page.keyboard.press('ArrowLeft'); // wraps past undo → last enabled
+      await expect(undoBtn).not.toBeFocused();
+    });
+
+    test('Enter on a focused toolbar button activates it', async () => {
+      await page.locator(editorSelector).click();
+      await page.locator(editorSelector).type('nav test');
+      await page.keyboard.press('Control+A');
+
+      const boldBtn = page.locator(`${toolbarSelector} button[data-command="bold"]`);
+      await boldBtn.focus();
+      await page.keyboard.press('Enter');
+      await expect(boldBtn).toHaveAttribute('aria-pressed', 'true');
+    });
+  });
+
+  test.describe('Dialog Focus Management (a11y)', () => {
+    test('link tooltip restores focus after Escape (back to the editor)', async () => {
+      const linkBtn = page.locator(`${toolbarSelector} button[data-command="createLink"]`);
+      await page.locator(editorSelector).click();
+      await linkBtn.click(); // mousedown is preventDefault-ed → focus stays on the editor
+      await page.waitForSelector('.re-link-tooltip');
+
+      // The tooltip moves focus into its text input (deferred)
+      const textInput = page.locator('.re-link-tooltip-input[type="text"]');
+      await expect(textInput).toBeFocused();
+
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.re-link-tooltip', { state: 'detached' });
+      // Focus must not be lost to <body> — it returns to the previously focused element
+      await expect(page.locator(editorSelector)).toBeFocused();
+    });
+
+    test('image dialog traps focus with Tab inside the dialog', async () => {
+      await page.locator(editorSelector).click();
+      await page.locator(`${toolbarSelector} button[data-command="insertImage"]`).click();
+      await page.waitForSelector('.re-dialog-overlay');
+
+      const focusable = page.locator('.re-dialog input, .re-dialog button');
+      const count = await focusable.count();
+      await focusable.nth(count - 1).focus();
+      await page.keyboard.press('Tab');
+      await expect(focusable.first()).toBeFocused();
+
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.re-dialog-overlay', { state: 'detached' });
+    });
+  });
 });
