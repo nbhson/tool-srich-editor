@@ -22,6 +22,8 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+      - name: Bundle size check
+        run: npm run check:size
 
   e2e:
     runs-on: ubuntu-latest

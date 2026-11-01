@@ -24,6 +24,7 @@
     "test:watch": "npx vitest",
     "test:unit": "npx vitest run",
     "test:e2e": "npx playwright test",
+    "check:size": "node scripts/check-size.mjs",
     "lint": "eslint src/",
     "prepublishOnly": "npm run build",
     "demo": "open demo/index.html"
