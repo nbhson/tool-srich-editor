@@ -1,6 +1,6 @@
 {
   "name": "@nbhson43/s-rich-editor",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A lightweight, dependency-free rich text editor built with Vanilla JavaScript",
   "main": "dist/srich-editor.umd.js",
   "module": "dist/srich-editor.esm.js",
@@ -42,11 +42,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nbhson/srich-editor.git"
+    "url": "git+https://github.com/nbhson/tool-srich-editor.git"
   },
-  "homepage": "https://github.com/nbhson/srich-editor#readme",
+  "homepage": "https://github.com/nbhson/tool-srich-editor#readme",
   "bugs": {
-    "url": "https://github.com/nbhson/srich-editor/issues"
+    "url": "https://github.com/nbhson/tool-srich-editor/issues"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
